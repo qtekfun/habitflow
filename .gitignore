@@ -42,3 +42,9 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Claude Code
+.claude/
+
+# Hypothesis
+.hypothesis/
