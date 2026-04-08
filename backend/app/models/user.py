@@ -1,11 +1,16 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.habit import Habit
+    from app.models.habit_log import HabitLog
 
 
 class User(Base):
@@ -32,9 +37,9 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
-    habits: Mapped[list["Habit"]] = relationship(  # noqa: F821
+    habits: Mapped[list["Habit"]] = relationship(
         "Habit", back_populates="user", cascade="all, delete-orphan"
     )
-    logs: Mapped[list["HabitLog"]] = relationship(  # noqa: F821
+    logs: Mapped[list["HabitLog"]] = relationship(
         "HabitLog", back_populates="user", cascade="all, delete-orphan"
     )
