@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import math
 import uuid
-from datetime import date, timedelta
+from datetime import date
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
