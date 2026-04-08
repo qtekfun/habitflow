@@ -30,6 +30,13 @@ class HabitRead(BaseModel):
     sort_order: int
 
 
+class HabitDetail(HabitRead):
+    """Single-habit response that includes computed streak fields."""
+
+    current_streak: int
+    longest_streak: int
+
+
 class HabitUpdate(BaseModel):
     name: str | None = None
     description: str | None = None

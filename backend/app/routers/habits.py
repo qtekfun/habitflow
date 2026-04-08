@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.schemas.habit import HabitCreate, HabitRead, HabitUpdate
+from app.schemas.habit import HabitCreate, HabitDetail, HabitRead, HabitUpdate
 from app.services import habit_service
 
 router = APIRouter(prefix="/api/v1/habits", tags=["habits"])
@@ -43,7 +43,7 @@ async def create_habit(
     )
 
 
-@router.get("/{habit_id}", response_model=HabitRead)
+@router.get("/{habit_id}", response_model=HabitDetail)
 async def get_habit(
     habit_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -56,7 +56,15 @@ async def get_habit(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Habit not found"
         )
-    return habit
+    current_streak = await habit_service.calculate_streak(
+        db=db, habit=habit, user_timezone=current_user.timezone
+    )
+    longest_streak = await habit_service.calculate_longest_streak(db=db, habit=habit)
+    return HabitDetail(
+        **HabitRead.model_validate(habit).model_dump(),
+        current_streak=current_streak,
+        longest_streak=longest_streak,
+    )
 
 
 @router.patch("/{habit_id}", response_model=HabitRead)
