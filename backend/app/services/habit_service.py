@@ -131,10 +131,14 @@ async def _completed_dates(
 
 
 def _daily_streak(completed: set[date], today: date) -> int:
+    """
+    Count consecutive completed days ending today or yesterday (grace period).
+
+    If today has no log yet, the streak still counts from yesterday.
+    """
     if not completed:
         return 0
 
-    # Grace period: if today not done, start from yesterday
     if today in completed:
         cursor = today
     elif (today - timedelta(days=1)) in completed:
@@ -185,8 +189,9 @@ def _weekly_streak(completed: set[date], today: date) -> int:
 # Public streak API
 # ---------------------------------------------------------------------------
 
-# Bound for current-streak queries: no active streak can exceed this many days.
-_STREAK_LOOKBACK_DAYS = 366
+# 730 days covers 104 weekly streak periods — well beyond any realistic streak.
+# Weekly habits need up to weeks_ago*7 days of history, so daily 366 was too short.
+_STREAK_LOOKBACK_DAYS = 730
 
 
 async def calculate_streak(

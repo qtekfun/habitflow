@@ -261,7 +261,7 @@ async def make_log(db_session: AsyncSession):
 
 
 def days_ago(n: int) -> date:
-    """Return the date n days before today. Shared across all test modules."""
+    """Return the date n days before today."""
     return date.today() - timedelta(days=n)
 
 

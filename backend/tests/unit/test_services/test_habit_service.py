@@ -12,7 +12,7 @@ from datetime import date, timedelta
 
 import pytz
 
-from tests.conftest import days_ago as _date
+from tests.conftest import days_ago
 
 
 # ---------------------------------------------------------------------------
@@ -142,7 +142,7 @@ class TestDailyStreak:
         user = await make_user()
         habit = await make_habit(user=user)
         await make_log(habit=habit, user=user, log_date=date.today())
-        await make_log(habit=habit, user=user, log_date=_date(1))
+        await make_log(habit=habit, user=user, log_date=days_ago(1))
 
         streak = await calculate_streak(db=db_session, habit=habit, user_timezone="UTC")
         assert streak == 2
@@ -154,9 +154,9 @@ class TestDailyStreak:
         user = await make_user()
         habit = await make_habit(user=user)
         await make_log(habit=habit, user=user, log_date=date.today())
-        await make_log(habit=habit, user=user, log_date=_date(1))
-        # _date(2) is missing — gap
-        await make_log(habit=habit, user=user, log_date=_date(3))
+        await make_log(habit=habit, user=user, log_date=days_ago(1))
+        # days_ago(2) is missing — gap
+        await make_log(habit=habit, user=user, log_date=days_ago(3))
 
         streak = await calculate_streak(db=db_session, habit=habit, user_timezone="UTC")
         assert streak == 2
@@ -167,7 +167,7 @@ class TestDailyStreak:
 
         user = await make_user()
         habit = await make_habit(user=user)
-        await make_log(habit=habit, user=user, log_date=_date(1))
+        await make_log(habit=habit, user=user, log_date=days_ago(1))
 
         streak = await calculate_streak(db=db_session, habit=habit, user_timezone="UTC")
         assert streak == 1
@@ -178,8 +178,8 @@ class TestDailyStreak:
 
         user = await make_user()
         habit = await make_habit(user=user)
-        await make_log(habit=habit, user=user, log_date=_date(2))
-        await make_log(habit=habit, user=user, log_date=_date(3))
+        await make_log(habit=habit, user=user, log_date=days_ago(2))
+        await make_log(habit=habit, user=user, log_date=days_ago(3))
 
         streak = await calculate_streak(db=db_session, habit=habit, user_timezone="UTC")
         assert streak == 0
@@ -191,7 +191,7 @@ class TestDailyStreak:
         user = await make_user()
         habit = await make_habit(user=user)
         for i in range(5, 10):
-            await make_log(habit=habit, user=user, log_date=_date(i))
+            await make_log(habit=habit, user=user, log_date=days_ago(i))
 
         streak = await calculate_streak(db=db_session, habit=habit, user_timezone="UTC")
         assert streak == 0
@@ -202,7 +202,7 @@ class TestDailyStreak:
         user = await make_user()
         habit = await make_habit(user=user)
         for i in range(30):  # 30 consecutive days ending today
-            await make_log(habit=habit, user=user, log_date=_date(i))
+            await make_log(habit=habit, user=user, log_date=days_ago(i))
 
         streak = await calculate_streak(db=db_session, habit=habit, user_timezone="UTC")
         assert streak == 30
@@ -267,8 +267,8 @@ class TestStreakTimezone:
 class TestWeeklyStreak:
     @staticmethod
     def _iso_week_monday(weeks_ago: int) -> date:
-        today = date.today()
-        this_monday = today - timedelta(days=today.weekday())
+        iso = date.today().isocalendar()
+        this_monday = date.fromisocalendar(iso.year, iso.week, 1)
         return this_monday - timedelta(weeks=weeks_ago)
 
     async def test_streak_weekly_consecutive_weeks(self, db_session, make_user, make_habit, make_log):
@@ -336,10 +336,10 @@ class TestLongestStreak:
         habit = await make_habit(user=user)
         # 5-day run, then a gap, then 2-day run
         for i in range(10, 5, -1):   # days 10..6 ago (5 days)
-            await make_log(habit=habit, user=user, log_date=_date(i))
+            await make_log(habit=habit, user=user, log_date=days_ago(i))
         # gap at day 5
         for i in range(4, 2, -1):    # days 4..3 ago (2 days)
-            await make_log(habit=habit, user=user, log_date=_date(i))
+            await make_log(habit=habit, user=user, log_date=days_ago(i))
 
         longest = await calculate_longest_streak(db=db_session, habit=habit)
         assert longest == 5
@@ -359,7 +359,7 @@ class TestLongestStreak:
         user = await make_user()
         habit = await make_habit(user=user)
         for i in range(20):
-            await make_log(habit=habit, user=user, log_date=_date(i))
+            await make_log(habit=habit, user=user, log_date=days_ago(i))
 
         longest = await calculate_longest_streak(db=db_session, habit=habit)
         assert longest == 20

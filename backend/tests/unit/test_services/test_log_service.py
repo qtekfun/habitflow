@@ -13,7 +13,7 @@ from datetime import date
 
 import pytest
 
-from tests.conftest import days_ago as _date
+from tests.conftest import days_ago
 
 
 # ---------------------------------------------------------------------------
@@ -64,7 +64,7 @@ class TestCheckin:
         user = await make_user()
         habit = await make_habit(user=user)
         log1 = await checkin(db=db_session, habit=habit, user=user, log_date=date.today())
-        log2 = await checkin(db=db_session, habit=habit, user=user, log_date=_date(1))
+        log2 = await checkin(db=db_session, habit=habit, user=user, log_date=days_ago(1))
 
         assert log1.id != log2.id
 
@@ -172,11 +172,11 @@ class TestStats:
         user = await make_user()
         habit = await make_habit(user=user)
         for i in range(7):
-            await make_log(habit=habit, user=user, log_date=_date(i))
+            await make_log(habit=habit, user=user, log_date=days_ago(i))
 
         stats = await get_stats(
             db=db_session, habit=habit,
-            from_date=_date(6), to_date=date.today()
+            from_date=days_ago(6), to_date=date.today()
         )
 
         assert stats["total_days"] == 7
@@ -189,11 +189,11 @@ class TestStats:
         user = await make_user()
         habit = await make_habit(user=user)
         for i in [0, 2, 4]:
-            await make_log(habit=habit, user=user, log_date=_date(i))
+            await make_log(habit=habit, user=user, log_date=days_ago(i))
 
         stats = await get_stats(
             db=db_session, habit=habit,
-            from_date=_date(6), to_date=date.today()
+            from_date=days_ago(6), to_date=date.today()
         )
 
         assert stats["completed_days"] == 3
@@ -207,7 +207,7 @@ class TestStats:
 
         stats = await get_stats(
             db=db_session, habit=habit,
-            from_date=_date(6), to_date=date.today()
+            from_date=days_ago(6), to_date=date.today()
         )
 
         assert stats["completed_days"] == 0
@@ -220,13 +220,13 @@ class TestStats:
         habit = await make_habit(user=user)
         # 5 completions in week 1 (days 0-4), 3 in week 2 (days 7-9)
         for i in range(5):
-            await make_log(habit=habit, user=user, log_date=_date(i))
+            await make_log(habit=habit, user=user, log_date=days_ago(i))
         for i in range(7, 10):
-            await make_log(habit=habit, user=user, log_date=_date(i))
+            await make_log(habit=habit, user=user, log_date=days_ago(i))
 
         stats = await get_stats(
             db=db_session, habit=habit,
-            from_date=_date(13), to_date=date.today()
+            from_date=days_ago(13), to_date=date.today()
         )
 
         # 8 completions over 2 weeks = 4.0 average
@@ -238,11 +238,11 @@ class TestStats:
         user = await make_user()
         habit = await make_habit(user=user)
         for i in range(10):
-            await make_log(habit=habit, user=user, log_date=_date(i))
+            await make_log(habit=habit, user=user, log_date=days_ago(i))
 
         stats = await get_stats(
             db=db_session, habit=habit,
-            from_date=_date(2), to_date=date.today()
+            from_date=days_ago(2), to_date=date.today()
         )
 
         assert stats["total_days"] == 3
