@@ -8,14 +8,16 @@ Provides:
 - Auth helper: get_auth_headers(user)
 """
 
+import asyncio
 import uuid
 from collections.abc import AsyncGenerator
-from datetime import UTC, date, datetime
+from datetime import date
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 from app.core.database import Base, get_db
@@ -50,9 +52,9 @@ def _get_app():
 test_engine = create_async_engine(
     settings.TEST_DATABASE_URL,
     echo=False,
-    # Use NullPool so each test session gets a fresh connection; avoids
-    # "connection already closed" errors in the async test runner.
-    pool_pre_ping=True,
+    # NullPool: every connect() opens a fresh connection in the current event
+    # loop — avoids "Future attached to a different loop" with pytest-asyncio.
+    poolclass=NullPool,
 )
 
 TestSessionLocal = async_sessionmaker(
@@ -63,17 +65,29 @@ TestSessionLocal = async_sessionmaker(
 
 
 # ---------------------------------------------------------------------------
-# Schema lifecycle — create tables once per session, drop after
+# Schema lifecycle — synchronous fixture so it never touches the async loop
+# used by function-scoped fixtures. asyncio.run() spins its own temporary
+# loop for the DDL statements, then exits cleanly.
 # ---------------------------------------------------------------------------
 
 
-@pytest_asyncio.fixture(scope="session", autouse=True)
-async def create_test_tables():
+async def _create_tables() -> None:
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    yield
+    await test_engine.dispose()
+
+
+async def _drop_tables() -> None:
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+    await test_engine.dispose()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def create_test_tables():
+    asyncio.run(_create_tables())
+    yield
+    asyncio.run(_drop_tables())
 
 
 # ---------------------------------------------------------------------------
@@ -86,15 +100,17 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
     """
     Yields an AsyncSession that is rolled back after each test, keeping
     the test database clean without the overhead of re-creating tables.
+
+    Uses TestSessionLocal() directly (no bind=conn) to avoid cross-loop
+    Future issues with asyncpg under pytest-asyncio 0.24+.
+    Services call flush() but never commit(), so rollback() cleanly undoes
+    all changes made during the test.
     """
-    async with test_engine.connect() as conn:
-        await conn.begin()
-        session = AsyncSession(bind=conn, expire_on_commit=False)
+    async with TestSessionLocal() as session:
         try:
             yield session
         finally:
-            await session.close()
-            await conn.rollback()
+            await session.rollback()
 
 
 # ---------------------------------------------------------------------------
