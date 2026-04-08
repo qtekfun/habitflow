@@ -13,8 +13,7 @@ import pytest
 from jose import jwt
 
 from app.core.config import settings
-from app.core.security import generate_totp_secret, verify_totp
-from tests.conftest import get_auth_headers
+from app.core.security import generate_totp_secret
 
 
 # ---------------------------------------------------------------------------
@@ -153,7 +152,7 @@ class TestLoginTotp:
         import pyotp
 
         secret = generate_totp_secret()
-        user = await make_user(
+        await make_user(
             email="gina@example.com",
             username="gina",
             password="Pass1234!",
@@ -284,7 +283,7 @@ class TestRefreshToken:
     async def test_refresh_token_rotation(self, db_session, make_user):
         from app.services.auth_service import login, refresh_tokens
 
-        user = await make_user(email="nina@example.com", username="nina", password="Pass1!")
+        await make_user(email="nina@example.com", username="nina", password="Pass1!")
         tokens = await login(db=db_session, email="nina@example.com", password="Pass1!")
         old_rt = tokens["refresh_token"]
 

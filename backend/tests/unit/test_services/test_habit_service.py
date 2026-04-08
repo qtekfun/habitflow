@@ -10,7 +10,6 @@ Covers:
 
 from datetime import date, timedelta
 
-import pytest
 import pytz
 
 
@@ -229,8 +228,6 @@ class TestStreakTimezone:
         still see today's log counted correctly.
         """
         from app.services.habit_service import calculate_streak
-        from datetime import datetime, timezone
-        from unittest.mock import patch
 
         # Simulate: it is 23:00 UTC, but the user is UTC+9 → 08:00 next day locally.
         # "Today" for the user is the UTC date + 1.
