@@ -1,0 +1,100 @@
+name: Security Scan
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"  # Every Monday at 08:00 UTC
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+jobs:
+  trivy-api:
+    name: Trivy scan — API image
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image for scanning
+        run: docker build -t habitflow-api:scan ./backend
+
+      - name: Run Trivy on API image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: habitflow-api:scan
+          format: sarif
+          output: trivy-api.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "0"  # don't fail the build, just report
+
+      - name: Upload Trivy API results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-api.sarif
+          category: trivy-api
+
+  trivy-web:
+    name: Trivy scan — Web image
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Web image for scanning
+        run: docker build -t habitflow-web:scan ./frontend
+        # frontend/ Dockerfile will be added in Phase 3; skip if not present
+        continue-on-error: true
+
+      - name: Run Trivy on Web image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: habitflow-web:scan
+          format: sarif
+          output: trivy-web.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "0"
+        continue-on-error: true
+
+      - name: Upload Trivy Web results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-web.sarif
+          category: trivy-web
+        continue-on-error: true
+
+  pip-audit:
+    name: pip-audit — Python dependencies
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Audit Python dependencies
+        run: |
+          pip-audit -r backend/requirements.txt \
+            --format sarif \
+            --output pip-audit.sarif || true
+
+      - name: Upload pip-audit results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: pip-audit.sarif
+          category: pip-audit
+        continue-on-error: true
