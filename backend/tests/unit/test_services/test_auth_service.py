@@ -77,8 +77,12 @@ class TestLogin:
     async def test_login_returns_tokens(self, db_session, make_user):
         from app.services.auth_service import login
 
-        user = await make_user(email="dave@example.com", username="dave", password="Pass1234!")
-        result = await login(db=db_session, email="dave@example.com", password="Pass1234!")
+        user = await make_user(
+            email="dave@example.com", username="dave", password="Pass1234!"
+        )
+        result = await login(
+            db=db_session, email="dave@example.com", password="Pass1234!"
+        )
 
         assert result["access_token"]
         assert result["refresh_token"]
@@ -118,7 +122,9 @@ class TestLogin:
             totp_enabled=True,
             totp_secret=secret,
         )
-        result = await login(db=db_session, email="frank@example.com", password="Pass1234!")
+        result = await login(
+            db=db_session, email="frank@example.com", password="Pass1234!"
+        )
 
         assert result["totp_required"] is True
         assert result["temp_token"]
@@ -135,7 +141,12 @@ class TestLogin:
         from app.services.auth_service import login
         from app.services.auth_service import InvalidCredentialsError
 
-        await make_user(email="inactive@example.com", username="inactive", password="Pass1!", is_active=False)
+        await make_user(
+            email="inactive@example.com",
+            username="inactive",
+            password="Pass1!",
+            is_active=False,
+        )
 
         with pytest.raises(InvalidCredentialsError):
             await login(db=db_session, email="inactive@example.com", password="Pass1!")
@@ -159,11 +170,15 @@ class TestLoginTotp:
             totp_enabled=True,
             totp_secret=secret,
         )
-        step1 = await login(db=db_session, email="gina@example.com", password="Pass1234!")
+        step1 = await login(
+            db=db_session, email="gina@example.com", password="Pass1234!"
+        )
         temp_token = step1["temp_token"]
 
         code = pyotp.TOTP(secret).now()
-        result = await complete_totp_login(db=db_session, temp_token=temp_token, code=code)
+        result = await complete_totp_login(
+            db=db_session, temp_token=temp_token, code=code
+        )
 
         assert result["access_token"]
         assert result["refresh_token"]
@@ -180,7 +195,9 @@ class TestLoginTotp:
             totp_enabled=True,
             totp_secret=secret,
         )
-        step1 = await login(db=db_session, email="harry@example.com", password="Pass1234!")
+        step1 = await login(
+            db=db_session, email="harry@example.com", password="Pass1234!"
+        )
 
         with pytest.raises(InvalidTOTPError):
             await complete_totp_login(
@@ -192,7 +209,9 @@ class TestLoginTotp:
         from app.services.auth_service import InvalidTokenError
 
         with pytest.raises(InvalidTokenError):
-            await complete_totp_login(db=db_session, temp_token="not.a.token", code="123456")
+            await complete_totp_login(
+                db=db_session, temp_token="not.a.token", code="123456"
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -241,7 +260,11 @@ class TestTOTPSetup:
             await verify_totp_setup(db=db_session, user=user, code="000000")
 
     async def test_totp_disable(self, db_session, make_user):
-        from app.services.auth_service import setup_totp, verify_totp_setup, disable_totp
+        from app.services.auth_service import (
+            setup_totp,
+            verify_totp_setup,
+            disable_totp,
+        )
         import pyotp
 
         user = await make_user(email="leo@example.com", username="leo")
@@ -259,7 +282,11 @@ class TestTOTPSetup:
         assert user.totp_secret is None
 
     async def test_totp_disable_wrong_code_raises(self, db_session, make_user):
-        from app.services.auth_service import setup_totp, verify_totp_setup, disable_totp
+        from app.services.auth_service import (
+            setup_totp,
+            verify_totp_setup,
+            disable_totp,
+        )
         from app.services.auth_service import InvalidTOTPError
         import pyotp
 
@@ -306,7 +333,9 @@ class TestRefreshToken:
             "app.core.security.timedelta",
             side_effect=lambda **kw: timedelta(seconds=-1),
         ):
-            expired_rt = create_refresh_token(subject="00000000-0000-0000-0000-000000000000")
+            expired_rt = create_refresh_token(
+                subject="00000000-0000-0000-0000-000000000000"
+            )
 
         with pytest.raises(InvalidTokenError):
             await refresh_tokens(db=db_session, refresh_token=expired_rt)
@@ -324,7 +353,9 @@ class TestRefreshToken:
         from app.services.auth_service import InvalidTokenError
 
         await make_user(email="oscar@example.com", username="oscar", password="Pass1!")
-        tokens = await login(db=db_session, email="oscar@example.com", password="Pass1!")
+        tokens = await login(
+            db=db_session, email="oscar@example.com", password="Pass1!"
+        )
         access_token = tokens["access_token"]
 
         with pytest.raises(InvalidTokenError):

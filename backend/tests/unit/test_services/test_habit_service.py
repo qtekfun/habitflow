@@ -59,7 +59,9 @@ class TestHabitCRUD:
         assert fetched is not None
         assert fetched.id == habit.id
 
-    async def test_get_habit_wrong_user_returns_none(self, db_session, make_user, make_habit):
+    async def test_get_habit_wrong_user_returns_none(
+        self, db_session, make_user, make_habit
+    ):
         from app.services.habit_service import get_habit
 
         owner = await make_user()
@@ -69,7 +71,9 @@ class TestHabitCRUD:
         result = await get_habit(db=db_session, habit_id=habit.id, user_id=other.id)
         assert result is None
 
-    async def test_list_habits_returns_only_user_habits(self, db_session, make_user, make_habit):
+    async def test_list_habits_returns_only_user_habits(
+        self, db_session, make_user, make_habit
+    ):
         from app.services.habit_service import list_habits
 
         user_a = await make_user()
@@ -136,7 +140,9 @@ class TestDailyStreak:
         streak = await calculate_streak(db=db_session, habit=habit, user_timezone="UTC")
         assert streak == 1
 
-    async def test_streak_yesterday_and_today(self, db_session, make_user, make_habit, make_log):
+    async def test_streak_yesterday_and_today(
+        self, db_session, make_user, make_habit, make_log
+    ):
         from app.services.habit_service import calculate_streak
 
         user = await make_user()
@@ -147,7 +153,9 @@ class TestDailyStreak:
         streak = await calculate_streak(db=db_session, habit=habit, user_timezone="UTC")
         assert streak == 2
 
-    async def test_streak_broken_by_gap(self, db_session, make_user, make_habit, make_log):
+    async def test_streak_broken_by_gap(
+        self, db_session, make_user, make_habit, make_log
+    ):
         """today + yesterday OK, day before yesterday missing → streak = 2."""
         from app.services.habit_service import calculate_streak
 
@@ -161,7 +169,9 @@ class TestDailyStreak:
         streak = await calculate_streak(db=db_session, habit=habit, user_timezone="UTC")
         assert streak == 2
 
-    async def test_streak_grace_period_today_not_done(self, db_session, make_user, make_habit, make_log):
+    async def test_streak_grace_period_today_not_done(
+        self, db_session, make_user, make_habit, make_log
+    ):
         """Only yesterday completed; today not yet done → streak = 1 (grace period)."""
         from app.services.habit_service import calculate_streak
 
@@ -172,7 +182,9 @@ class TestDailyStreak:
         streak = await calculate_streak(db=db_session, habit=habit, user_timezone="UTC")
         assert streak == 1
 
-    async def test_streak_nothing_in_two_days(self, db_session, make_user, make_habit, make_log):
+    async def test_streak_nothing_in_two_days(
+        self, db_session, make_user, make_habit, make_log
+    ):
         """No completion for 2 days → streak = 0."""
         from app.services.habit_service import calculate_streak
 
@@ -184,7 +196,9 @@ class TestDailyStreak:
         streak = await calculate_streak(db=db_session, habit=habit, user_timezone="UTC")
         assert streak == 0
 
-    async def test_streak_only_older_logs(self, db_session, make_user, make_habit, make_log):
+    async def test_streak_only_older_logs(
+        self, db_session, make_user, make_habit, make_log
+    ):
         """Logs exist but none within grace window → streak = 0."""
         from app.services.habit_service import calculate_streak
 
@@ -196,7 +210,9 @@ class TestDailyStreak:
         streak = await calculate_streak(db=db_session, habit=habit, user_timezone="UTC")
         assert streak == 0
 
-    async def test_streak_long_consecutive_run(self, db_session, make_user, make_habit, make_log):
+    async def test_streak_long_consecutive_run(
+        self, db_session, make_user, make_habit, make_log
+    ):
         from app.services.habit_service import calculate_streak
 
         user = await make_user()
@@ -214,7 +230,9 @@ class TestDailyStreak:
 
 
 class TestStreakTimezone:
-    async def test_streak_timezone_utc_plus9(self, db_session, make_user, make_habit, make_log):
+    async def test_streak_timezone_utc_plus9(
+        self, db_session, make_user, make_habit, make_log
+    ):
         """
         A user in UTC+9 whose local date is 'tomorrow' relative to UTC should
         still see today's log counted correctly.
@@ -227,6 +245,7 @@ class TestStreakTimezone:
 
         # Compute what "today" is in Tokyo right now — we'll log that date.
         import datetime as dt
+
         now_utc = dt.datetime.now(dt.timezone.utc)
         today_in_tz = now_utc.astimezone(tz).date()
 
@@ -236,10 +255,14 @@ class TestStreakTimezone:
         yesterday_in_tz = today_in_tz - timedelta(days=1)
         await make_log(habit=habit, user=user, log_date=yesterday_in_tz)
 
-        streak = await calculate_streak(db=db_session, habit=habit, user_timezone="Asia/Tokyo")
+        streak = await calculate_streak(
+            db=db_session, habit=habit, user_timezone="Asia/Tokyo"
+        )
         assert streak == 2
 
-    async def test_streak_uses_user_timezone_not_utc(self, db_session, make_user, make_habit, make_log):
+    async def test_streak_uses_user_timezone_not_utc(
+        self, db_session, make_user, make_habit, make_log
+    ):
         """
         A log for 'today in UTC-8' may be 'yesterday in UTC'. Streak must be 1,
         not 0, when the log date matches the user's local today.
@@ -255,7 +278,9 @@ class TestStreakTimezone:
         habit = await make_habit(user=user)
         await make_log(habit=habit, user=user, log_date=today_in_tz)
 
-        streak = await calculate_streak(db=db_session, habit=habit, user_timezone="America/Los_Angeles")
+        streak = await calculate_streak(
+            db=db_session, habit=habit, user_timezone="America/Los_Angeles"
+        )
         assert streak == 1
 
 
@@ -271,7 +296,9 @@ class TestWeeklyStreak:
         this_monday = date.fromisocalendar(iso.year, iso.week, 1)
         return this_monday - timedelta(weeks=weeks_ago)
 
-    async def test_streak_weekly_consecutive_weeks(self, db_session, make_user, make_habit, make_log):
+    async def test_streak_weekly_consecutive_weeks(
+        self, db_session, make_user, make_habit, make_log
+    ):
         """Completed this week + last week → streak = 2."""
         from app.services.habit_service import calculate_streak
 
@@ -285,7 +312,9 @@ class TestWeeklyStreak:
         streak = await calculate_streak(db=db_session, habit=habit, user_timezone="UTC")
         assert streak == 2
 
-    async def test_streak_weekly_broken(self, db_session, make_user, make_habit, make_log):
+    async def test_streak_weekly_broken(
+        self, db_session, make_user, make_habit, make_log
+    ):
         """Missed last week → streak = 1 (only this week counts)."""
         from app.services.habit_service import calculate_streak
 
@@ -299,7 +328,9 @@ class TestWeeklyStreak:
         streak = await calculate_streak(db=db_session, habit=habit, user_timezone="UTC")
         assert streak == 1
 
-    async def test_streak_weekly_grace_this_week_not_done(self, db_session, make_user, make_habit, make_log):
+    async def test_streak_weekly_grace_this_week_not_done(
+        self, db_session, make_user, make_habit, make_log
+    ):
         """This week not done yet, last week done → streak = 1 (weekly grace period)."""
         from app.services.habit_service import calculate_streak
 
@@ -329,16 +360,18 @@ class TestWeeklyStreak:
 
 
 class TestLongestStreak:
-    async def test_longest_streak_basic(self, db_session, make_user, make_habit, make_log):
+    async def test_longest_streak_basic(
+        self, db_session, make_user, make_habit, make_log
+    ):
         from app.services.habit_service import calculate_longest_streak
 
         user = await make_user()
         habit = await make_habit(user=user)
         # 5-day run, then a gap, then 2-day run
-        for i in range(10, 5, -1):   # days 10..6 ago (5 days)
+        for i in range(10, 5, -1):  # days 10..6 ago (5 days)
             await make_log(habit=habit, user=user, log_date=days_ago(i))
         # gap at day 5
-        for i in range(4, 2, -1):    # days 4..3 ago (2 days)
+        for i in range(4, 2, -1):  # days 4..3 ago (2 days)
             await make_log(habit=habit, user=user, log_date=days_ago(i))
 
         longest = await calculate_longest_streak(db=db_session, habit=habit)
@@ -353,7 +386,9 @@ class TestLongestStreak:
         longest = await calculate_longest_streak(db=db_session, habit=habit)
         assert longest == 0
 
-    async def test_longest_streak_all_consecutive(self, db_session, make_user, make_habit, make_log):
+    async def test_longest_streak_all_consecutive(
+        self, db_session, make_user, make_habit, make_log
+    ):
         from app.services.habit_service import calculate_longest_streak
 
         user = await make_user()

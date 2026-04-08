@@ -4,8 +4,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    DATABASE_URL: str = "postgresql+asyncpg://habitflow:habitflow@localhost:5432/habitflow"
-    TEST_DATABASE_URL: str = "postgresql+asyncpg://habitflow:habitflow@localhost:5433/habitflow_test"
+    DATABASE_URL: str = (
+        "postgresql+asyncpg://habitflow:habitflow@localhost:5432/habitflow"
+    )
+    TEST_DATABASE_URL: str = (
+        "postgresql+asyncpg://habitflow:habitflow@localhost:5433/habitflow_test"
+    )
 
     SECRET_KEY: str = "change-me-in-production"
     ALGORITHM: str = "HS256"

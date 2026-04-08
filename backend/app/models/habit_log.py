@@ -11,7 +11,9 @@ from app.core.database import Base
 
 class HabitLog(Base):
     __tablename__ = "habit_logs"
-    __table_args__ = (UniqueConstraint("habit_id", "log_date", name="uq_habit_log_date"),)
+    __table_args__ = (
+        UniqueConstraint("habit_id", "log_date", name="uq_habit_log_date"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4

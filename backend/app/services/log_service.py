@@ -48,9 +48,7 @@ async def checkin(
         )
     )
     if existing.scalar_one_or_none() is not None:
-        raise DuplicateLogError(
-            f"Habit {habit.id} already checked in on {log_date}"
-        )
+        raise DuplicateLogError(f"Habit {habit.id} already checked in on {log_date}")
 
     log = HabitLog(
         habit_id=habit.id,
@@ -81,9 +79,7 @@ async def get_log(
 ) -> HabitLog | None:
     """Return a log only when it belongs to *user_id*."""
     result = await db.execute(
-        select(HabitLog).where(
-            and_(HabitLog.id == log_id, HabitLog.user_id == user_id)
-        )
+        select(HabitLog).where(and_(HabitLog.id == log_id, HabitLog.user_id == user_id))
     )
     return result.scalar_one_or_none()
 
@@ -101,9 +97,7 @@ async def get_today_status(
     Each entry: {"habit_id": UUID, "name": str, "completed": bool, "log_id": UUID | None}
     """
     habits_result = await db.execute(
-        select(Habit).where(
-            and_(Habit.user_id == user_id, Habit.is_active.is_(True))
-        )
+        select(Habit).where(and_(Habit.user_id == user_id, Habit.is_active.is_(True)))
     )
     habits = habits_result.scalars().all()
 

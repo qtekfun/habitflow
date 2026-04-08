@@ -98,7 +98,11 @@ async def login(
     result = await db.execute(select(User).where(User.email == email))
     user: User | None = result.scalar_one_or_none()
 
-    if user is None or not user.is_active or not verify_password(password, user.hashed_pass):
+    if (
+        user is None
+        or not user.is_active
+        or not verify_password(password, user.hashed_pass)
+    ):
         raise InvalidCredentialsError("Invalid email or password")
 
     if user.totp_enabled:
