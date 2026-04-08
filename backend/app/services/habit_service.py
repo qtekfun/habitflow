@@ -105,27 +105,24 @@ def _today_in_tz(user_timezone: str) -> date:
     return datetime.now(timezone.utc).astimezone(tz).date()
 
 
-def _current_iso_week(user_timezone: str) -> tuple[int, int]:
-    """Return (year, week_number) for the current week in user's timezone."""
-    today = _today_in_tz(user_timezone)
-    iso = today.isocalendar()
-    return iso.year, iso.week
-
-
 def _iso_week_of(d: date) -> tuple[int, int]:
     iso = d.isocalendar()
     return iso.year, iso.week
 
 
-async def _completed_dates(db: AsyncSession, habit: Habit) -> set[date]:
-    """Return the set of all dates where this habit was completed."""
-    result = await db.execute(
-        select(HabitLog.log_date).where(
-            HabitLog.habit_id == habit.id,
-            HabitLog.completed.is_(True),
-        )
+async def _completed_dates(
+    db: AsyncSession,
+    habit: Habit,
+    since: date | None = None,
+) -> set[date]:
+    query = select(HabitLog.log_date).where(
+        HabitLog.habit_id == habit.id,
+        HabitLog.completed.is_(True),
     )
-    return {row[0] for row in result.all()}
+    if since is not None:
+        query = query.where(HabitLog.log_date >= since)
+    result = await db.execute(query)
+    return set(result.scalars().all())
 
 
 # ---------------------------------------------------------------------------
@@ -134,17 +131,10 @@ async def _completed_dates(db: AsyncSession, habit: Habit) -> set[date]:
 
 
 def _daily_streak(completed: set[date], today: date) -> int:
-    """
-    Count consecutive completed days ending today or yesterday (grace period).
-
-    Rules:
-    - Start from today; if today not completed, start from yesterday.
-    - Walk backwards day by day; stop at first missing day.
-    """
     if not completed:
         return 0
 
-    # Determine the starting point (grace period: skip today if not done)
+    # Grace period: if today not done, start from yesterday
     if today in completed:
         cursor = today
     elif (today - timedelta(days=1)) in completed:
@@ -156,7 +146,6 @@ def _daily_streak(completed: set[date], today: date) -> int:
     while cursor in completed:
         streak += 1
         cursor -= timedelta(days=1)
-
     return streak
 
 
@@ -169,37 +158,35 @@ def _weekly_streak(completed: set[date], today: date) -> int:
     """
     Count consecutive completed weeks ending this week or last week (grace).
 
-    A week is considered "completed" if at least one log falls in it.
-    Grace period: if this week has no log yet, check starting from last week.
+    A week is "completed" if at least one log falls in it.
     """
     if not completed:
         return 0
 
     completed_weeks: set[tuple[int, int]] = {_iso_week_of(d) for d in completed}
-
     this_week = _iso_week_of(today)
     last_week = _iso_week_of(today - timedelta(weeks=1))
 
     if this_week in completed_weeks:
-        current = this_week
+        check_date = today
     elif last_week in completed_weeks:
-        current = last_week
+        check_date = today - timedelta(weeks=1)
     else:
         return 0
 
     streak = 0
-    check_date = today if current == this_week else today - timedelta(weeks=1)
-
     while _iso_week_of(check_date) in completed_weeks:
         streak += 1
         check_date -= timedelta(weeks=1)
-
     return streak
 
 
 # ---------------------------------------------------------------------------
 # Public streak API
 # ---------------------------------------------------------------------------
+
+# Bound for current-streak queries: no active streak can exceed this many days.
+_STREAK_LOOKBACK_DAYS = 366
 
 
 async def calculate_streak(
@@ -208,8 +195,9 @@ async def calculate_streak(
     habit: Habit,
     user_timezone: str = "UTC",
 ) -> int:
-    completed = await _completed_dates(db, habit)
     today = _today_in_tz(user_timezone)
+    since = today - timedelta(days=_STREAK_LOOKBACK_DAYS)
+    completed = await _completed_dates(db, habit, since=since)
 
     if habit.frequency == "weekly":
         return _weekly_streak(completed, today)
@@ -221,17 +209,13 @@ async def calculate_longest_streak(
     db: AsyncSession,
     habit: Habit,
 ) -> int:
-    """
-    Calculate the historical longest consecutive streak (daily only).
-    Scans all logs in chronological order.
-    """
+    # Needs full history — no date bound applied here.
     completed = await _completed_dates(db, habit)
     if not completed:
         return 0
 
     sorted_dates = sorted(completed)
-    longest = 1
-    current = 1
+    longest = current = 1
 
     for i in range(1, len(sorted_dates)):
         if sorted_dates[i] - sorted_dates[i - 1] == timedelta(days=1):

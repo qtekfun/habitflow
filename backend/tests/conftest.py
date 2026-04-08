@@ -11,7 +11,7 @@ Provides:
 import asyncio
 import uuid
 from collections.abc import AsyncGenerator
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 import pytest_asyncio
@@ -258,6 +258,11 @@ async def make_log(db_session: AsyncSession):
 # ---------------------------------------------------------------------------
 # Auth helpers
 # ---------------------------------------------------------------------------
+
+
+def days_ago(n: int) -> date:
+    """Return the date n days before today. Shared across all test modules."""
+    return date.today() - timedelta(days=n)
 
 
 def get_auth_headers(user: User) -> dict[str, str]:

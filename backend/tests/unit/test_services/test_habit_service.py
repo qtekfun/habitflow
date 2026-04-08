@@ -12,15 +12,7 @@ from datetime import date, timedelta
 
 import pytz
 
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _date(days_ago: int) -> date:
-    """Return a date relative to today."""
-    return date.today() - timedelta(days=days_ago)
+from tests.conftest import days_ago as _date
 
 
 # ---------------------------------------------------------------------------
@@ -273,8 +265,8 @@ class TestStreakTimezone:
 
 
 class TestWeeklyStreak:
-    async def _iso_week_monday(self, weeks_ago: int) -> date:
-        """Return the Monday of the week N weeks ago."""
+    @staticmethod
+    def _iso_week_monday(weeks_ago: int) -> date:
         today = date.today()
         this_monday = today - timedelta(days=today.weekday())
         return this_monday - timedelta(weeks=weeks_ago)
@@ -285,8 +277,8 @@ class TestWeeklyStreak:
 
         user = await make_user()
         habit = await make_habit(user=user, frequency="weekly")
-        this_week = await self._iso_week_monday(0)
-        last_week = await self._iso_week_monday(1)
+        this_week = self._iso_week_monday(0)
+        last_week = self._iso_week_monday(1)
         await make_log(habit=habit, user=user, log_date=this_week)
         await make_log(habit=habit, user=user, log_date=last_week)
 
@@ -299,8 +291,8 @@ class TestWeeklyStreak:
 
         user = await make_user()
         habit = await make_habit(user=user, frequency="weekly")
-        this_week = await self._iso_week_monday(0)
-        two_weeks_ago = await self._iso_week_monday(2)
+        this_week = self._iso_week_monday(0)
+        two_weeks_ago = self._iso_week_monday(2)
         await make_log(habit=habit, user=user, log_date=this_week)
         await make_log(habit=habit, user=user, log_date=two_weeks_ago)
 
@@ -313,8 +305,8 @@ class TestWeeklyStreak:
 
         user = await make_user()
         habit = await make_habit(user=user, frequency="weekly")
-        last_week = await self._iso_week_monday(1)
-        two_weeks_ago = await self._iso_week_monday(2)
+        last_week = self._iso_week_monday(1)
+        two_weeks_ago = self._iso_week_monday(2)
         await make_log(habit=habit, user=user, log_date=last_week)
         await make_log(habit=habit, user=user, log_date=two_weeks_ago)
 
